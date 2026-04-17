@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DINELLPR · Volumen Semanal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Cormorant+Garamond:ital,wght@1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --text-muted: #666666;
+    --safe: #8ae8b4;
+    --warn: #e8d5a3;
+    --danger: #e88a6a;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23grain)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .title {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+  }
+
+  /* ── STICKY TOTAL BAR ── */
+  .sticky-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0.9rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+  }
+  .sticky-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    background: var(--text-muted);
+    transition: width 0.25s ease, background 0.25s ease;
+  }
+  .progress-fill.safe  { background: var(--safe); }
+  .progress-fill.warn  { background: var(--warn); }
+  .progress-fill.danger { background: var(--danger); }
+
+  .total-counter {
+    font-size: 1.1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.25s ease;
+    min-width: 4.5rem;
+    text-align: right;
+  }
+  .total-counter.safe  { color: var(--safe); }
+  .total-counter.warn  { color: var(--warn); }
+  .total-counter.danger { color: var(--danger); }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    display: none;
+    margin: 0 2rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--danger);
+    letter-spacing: 0.02em;
+    margin-top: 0.75rem;
+  }
+  .alert-banner.visible { display: block; }
+
+  /* ── TABS ── */
+  .tabs-wrapper {
+    padding: 1.2rem 2rem 0;
+  }
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.2rem 0.55rem;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+
+  /* ── MUSCLE PANELS ── */
+  .panels-wrapper {
+    padding: 0 2rem 2rem;
+  }
+  .panel {
+    display: none;
+  }
+  .panel.active { display: block; }
+
+  .muscle-list {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  /* Fade-up animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .panel.active .muscle-row {
+    animation: fadeUp 0.3s ease both;
+  }
+
+  /* ── MUSCLE ROW ── */
+  .muscle-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 72px;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+    transition: opacity 0.2s ease;
+  }
+  .muscle-row.capped { opacity: 0.4; }
+
+  .muscle-info {}
+  .muscle-name {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+  .muscle-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+    line-height: 1.2;
+  }
+
+  /* ── SLIDER ── */
+  .slider-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: transparent;
+    border-radius: 1px;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    margin-top: -8px;
+  }
+  input[type="range"]:hover::-webkit-slider-thumb {
+    transform: scale(1.2);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease;
+  }
+  input[type="range"]:hover::-moz-range-thumb {
+    transform: scale(1.2);
+  }
+  input[type="range"]:disabled {
+    cursor: not-allowed;
+  }
+  input[type="range"]:disabled::-webkit-slider-thumb {
+    background: var(--text-muted);
+    transform: none;
+  }
+  input[type="range"]:disabled::-moz-range-thumb {
+    background: var(--text-muted);
+  }
+
+  .slider-track-bg {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    z-index: 0;
+  }
+  .slider-fill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+    z-index: 1;
+    pointer-events: none;
+    transition: width 0.1s ease, background 0.25s ease;
+  }
+  .slider-fill.danger-fill { background: var(--danger); }
+
+  /* ── NUMBER INPUT ── */
+  input[type="number"] {
+    width: 72px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.4rem 0.5rem;
+    border-radius: 3px;
+    transition: border-color 0.2s ease, color 0.2s ease;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--text-muted);
+  }
+  input[type="number"].maxed {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+  }
+  input[type="number"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* ── BOTTOM SECTION ── */
+  .bottom-section {
+    padding: 2rem 2rem 3rem;
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+  }
+
+  /* Zone reference bar */
+  .zone-bar-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+  .zone-bar-wrap {
+    position: relative;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    margin-bottom: 0.6rem;
+  }
+  .zone-highlight {
+    position: absolute;
+    left: calc(90 / 130 * 100%);
+    width: calc(40 / 130 * 100%);
+    top: 0;
+    height: 100%;
+    background: color-mix(in srgb, var(--safe) 30%, transparent);
+    border-radius: 0 4px 4px 0;
+    border-left: 1px solid var(--safe);
+  }
+  .zone-marks {
+    position: relative;
+    height: 1.2rem;
+  }
+  .zone-mark {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .zone-mark.green { color: var(--safe); }
+
+  /* Reset + status row */
+  .action-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.55rem 1.1rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+  }
+  .reset-btn:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+  .status-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1rem;
+    color: var(--text-muted);
+    transition: color 0.25s ease;
+  }
+  .status-text.safe  { color: var(--safe); }
+  .status-text.warn  { color: var(--warn); }
+  .status-text.danger { color: var(--danger); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .header { padding: 1.5rem 1rem 1rem; }
+    .sticky-bar { padding: 0.75rem 1rem; }
+    .alert-banner { margin: 0 1rem; }
+    .tabs-wrapper { padding: 1rem 1rem 0; }
+    .panels-wrapper { padding: 0 1rem 1.5rem; }
+    .bottom-section { padding: 1.5rem 1rem 2rem; }
+    .muscle-row {
+      grid-template-columns: 120px 1fr 72px;
+      gap: 0.75rem;
+    }
+    .tab-btn { padding: 0.6rem 0.8rem 0.55rem; font-size: 0.78rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="brand">DINELLPR · Sistema de Entrenamiento</div>
+  <h1 class="title">Volumen Semanal</h1>
+  <p class="subtitle">Planificación de series por grupo muscular</p>
+</header>
+
+<!-- ── STICKY BAR ── -->
+<div class="sticky-bar">
+  <span class="sticky-label">Total semanal</span>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <span class="total-counter" id="totalCounter">0 / 130</span>
+</div>
+
+<!-- ── ALERT BANNER ── -->
+<div class="alert-banner" id="alertBanner">
+  Alcanzaste el máximo de 130 series semanales. Baja algún grupo para poder subir otro.
+</div>
+
+<!-- ── TABS ── -->
+<div class="tabs-wrapper">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="brazos">Brazos</button>
+    <button class="tab-btn" data-tab="pecho-espalda">Pecho · Espalda</button>
+    <button class="tab-btn" data-tab="piernas">Piernas</button>
+  </div>
+</div>
+
+<!-- ── PANELS ── -->
+<div class="panels-wrapper">
+
+  <!-- BRAZOS -->
+  <div class="panel active" id="panel-brazos">
+    <div class="muscle-list">
+      <div class="muscle-row" data-muscle="biceps" style="animation-delay:0.04s">
+        <div class="muscle-info">
+          <div class="muscle-name">Bíceps</div>
+          <div class="muscle-sub">Curl barra · Martillo · Predicador</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-biceps"></div>
+          <input type="range" id="slider-biceps" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-biceps" min="0" max="20" value="0">
+      </div>
+      <div class="muscle-row" data-muscle="triceps" style="animation-delay:0.08s">
+        <div class="muscle-info">
+          <div class="muscle-name">Tríceps</div>
+          <div class="muscle-sub">Press cerrado · Extensión · Fondos</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-triceps"></div>
+          <input type="range" id="slider-triceps" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-triceps" min="0" max="20" value="0">
+      </div>
+      <div class="muscle-row" data-muscle="hombros" style="animation-delay:0.12s">
+        <div class="muscle-info">
+          <div class="muscle-name">Hombros</div>
+          <div class="muscle-sub">Press militar · Elevaciones laterales</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-hombros"></div>
+          <input type="range" id="slider-hombros" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-hombros" min="0" max="20" value="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- PECHO · ESPALDA -->
+  <div class="panel" id="panel-pecho-espalda">
+    <div class="muscle-list">
+      <div class="muscle-row" data-muscle="pecho" style="animation-delay:0.04s">
+        <div class="muscle-info">
+          <div class="muscle-name">Pecho</div>
+          <div class="muscle-sub">Press banca · Aperturas · Fondos</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-pecho"></div>
+          <input type="range" id="slider-pecho" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-pecho" min="0" max="20" value="0">
+      </div>
+      <div class="muscle-row" data-muscle="espalda" style="animation-delay:0.08s">
+        <div class="muscle-info">
+          <div class="muscle-name">Espalda</div>
+          <div class="muscle-sub">Dominadas · Remo · Jalón polea</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-espalda"></div>
+          <input type="range" id="slider-espalda" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-espalda" min="0" max="20" value="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- PIERNAS -->
+  <div class="panel" id="panel-piernas">
+    <div class="muscle-list">
+      <div class="muscle-row" data-muscle="cuadriceps" style="animation-delay:0.04s">
+        <div class="muscle-info">
+          <div class="muscle-name">Cuádriceps</div>
+          <div class="muscle-sub">Sentadilla · Prensa · Extensiones</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-cuadriceps"></div>
+          <input type="range" id="slider-cuadriceps" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-cuadriceps" min="0" max="20" value="0">
+      </div>
+      <div class="muscle-row" data-muscle="femoral" style="animation-delay:0.08s">
+        <div class="muscle-info">
+          <div class="muscle-name">Femoral</div>
+          <div class="muscle-sub">Peso muerto rumano · Curl femoral</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-femoral"></div>
+          <input type="range" id="slider-femoral" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-femoral" min="0" max="20" value="0">
+      </div>
+      <div class="muscle-row" data-muscle="pantorrillas" style="animation-delay:0.12s">
+        <div class="muscle-info">
+          <div class="muscle-name">Pantorrillas</div>
+          <div class="muscle-sub">Elevaciones de talón · Prensa</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-fill" id="fill-pantorrillas"></div>
+          <input type="range" id="slider-pantorrillas" min="0" max="20" step="1" value="0">
+        </div>
+        <input type="number" id="num-pantorrillas" min="0" max="20" value="0">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── BOTTOM SECTION ── -->
+<div class="bottom-section">
+  <div class="zone-bar-label">Zona de referencia semanal</div>
+  <div class="zone-bar-wrap">
+    <div class="zone-highlight"></div>
+  </div>
+  <div class="zone-marks">
+    <span class="zone-mark" style="left:0%">0</span>
+    <span class="zone-mark" style="left:calc(20/130*100%)">20</span>
+    <span class="zone-mark" style="left:calc(40/130*100%)">40</span>
+    <span class="zone-mark" style="left:calc(60/130*100%)">60</span>
+    <span class="zone-mark" style="left:calc(80/130*100%)">80</span>
+    <span class="zone-mark green" style="left:calc(90/130*100%)">90</span>
+    <span class="zone-mark green" style="left:100%">130</span>
+  </div>
+
+  <div class="action-row">
+    <button class="reset-btn" id="resetBtn">↺ Reiniciar</button>
+    <span class="status-text" id="statusText">Sin series registradas</span>
+  </div>
+</div>
+
+<script>
+  const MUSCLES = ['biceps','triceps','hombros','pecho','espalda','cuadriceps','femoral','pantorrillas'];
+  const MAX_TOTAL = 130;
+  const MAX_PER = 20;
+
+  const values = {};
+  MUSCLES.forEach(m => values[m] = 0);
+
+  function getTotal() {
+    return MUSCLES.reduce((s, m) => s + values[m], 0);
+  }
+
+  function updateSliderFill(muscle, val, capped) {
+    const fill = document.getElementById('fill-' + muscle);
+    fill.style.width = (val / MAX_PER * 100) + '%';
+    if (capped) fill.classList.add('danger-fill');
+    else fill.classList.remove('danger-fill');
+  }
+
+  function updateUI() {
+    const total = getTotal();
+    const capped = total >= MAX_TOTAL;
+
+    // Progress bar
+    const pct = Math.min(total / MAX_TOTAL * 100, 100);
+    const fill = document.getElementById('progressFill');
+    fill.style.width = pct + '%';
+    fill.className = 'progress-fill' + (total >= MAX_TOTAL ? ' danger' : total >= 90 ? ' warn' : total >= 1 ? ' safe' : '');
+
+    // Counter
+    const counter = document.getElementById('totalCounter');
+    counter.textContent = total + ' / ' + MAX_TOTAL;
+    counter.className = 'total-counter' + (total >= MAX_TOTAL ? ' danger' : total >= 90 ? ' warn' : total >= 1 ? ' safe' : '');
+
+    // Alert
+    document.getElementById('alertBanner').classList.toggle('visible', capped);
+
+    // Status text
+    const st = document.getElementById('statusText');
+    if (total === 0) {
+      st.textContent = 'Sin series registradas';
+      st.className = 'status-text';
+    } else if (total < 90) {
+      st.textContent = `Por debajo del rango óptimo · Faltan ${90 - total} series`;
+      st.className = 'status-text';
+    } else if (total < MAX_TOTAL) {
+      st.textContent = `Dentro del rango óptimo · ${total} series`;
+      st.className = 'status-text safe';
+    } else {
+      st.textContent = 'Máximo alcanzado · 130 series';
+      st.className = 'status-text danger';
+    }
+
+    // Each muscle row
+    MUSCLES.forEach(muscle => {
+      const val = values[muscle];
+      const slider = document.getElementById('slider-' + muscle);
+      const num = document.getElementById('num-' + muscle);
+      const row = slider.closest('.muscle-row');
+
+      const atMax = val >= MAX_PER;
+      const blocked = capped && !atMax;
+
+      slider.disabled = blocked;
+      num.disabled = blocked;
+
+      row.classList.toggle('capped', blocked);
+
+      num.classList.toggle('maxed', atMax);
+
+      updateSliderFill(muscle, val, capped && val > 0);
+    });
+  }
+
+  function setValue(muscle, raw) {
+    const total = getTotal();
+    const current = values[muscle];
+    const available = MAX_TOTAL - total;
+    const delta = raw - current;
+    const clamped = Math.max(0, Math.min(MAX_PER, delta > 0 ? current + Math.min(delta, available) : raw));
+    values[muscle] = clamped;
+
+    // Sync both controls
+    document.getElementById('slider-' + muscle).value = clamped;
+    document.getElementById('num-' + muscle).value = clamped;
+    updateSliderFill(muscle, clamped, getTotal() >= MAX_TOTAL);
+    updateUI();
+  }
+
+  // Wire up sliders and inputs
+  MUSCLES.forEach(muscle => {
+    const slider = document.getElementById('slider-' + muscle);
+    const num = document.getElementById('num-' + muscle);
+
+    slider.addEventListener('input', () => setValue(muscle, parseInt(slider.value)));
+
+    num.addEventListener('input', () => {
+      const raw = parseInt(num.value);
+      if (!isNaN(raw)) setValue(muscle, raw);
+    });
+    num.addEventListener('blur', () => {
+      num.value = values[muscle];
+    });
+    num.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp') { e.preventDefault(); setValue(muscle, values[muscle] + 1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setValue(muscle, values[muscle] - 1); }
+    });
+  });
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Reset
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    MUSCLES.forEach(m => {
+      values[m] = 0;
+      document.getElementById('slider-' + m).value = 0;
+      document.getElementById('num-' + m).value = 0;
+      updateSliderFill(m, 0, false);
+    });
+    updateUI();
+  });
+
+  // Init
+  updateUI();
+</script>
+</body>
+</html>
